@@ -20,7 +20,7 @@ To evaluate the quality of living in some cities, we need to analyze the air qua
 
 We are also interested in the Air Quality Index (AQI) values of the PM2.5 AQI and PM10 AQI, defined on the 24-hour average of PM2.5 and PM10, respectively (see formula in annex). We are only interested in the cities from the countries provided in `countries.csv`.
 
-You are tasked with developing a data pipeline that takes in data from OpenAQ, processes it, and eventually stores the resulting data in a database of your choice for various use cases. The database should contain one or more tables with the hourly value of the metrics mentioned above (24-hour rolling average of PM2.5, PM10, O3 Ozone, NO2, and CO; And AQI PM2.5, and AQI PM10) for each city. You are free in how you approach this task regarding programming language, frameworks, platforms, databases, etc. We expect you to be able to explain your choices either in a few lines or in a follow-up conversation.
+The data pipeline must take  data from Google drive, process it, and eventually store the resulting data in a SQLite database. The database should contain one or more tables with the hourly value of the metrics mentioned above (24-hour rolling average of PM2.5, PM10, O3 Ozone, NO2, and CO; And AQI PM2.5, and AQI PM10) for each city. 
 
 # Solution
 The solution is implemented in pipeline.py and this pipeline has three sequential tasks: extract_files() , get_data(), process_data()
