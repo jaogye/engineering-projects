@@ -1,4 +1,4 @@
-# data-engineering-projects
+# engineering-projects
 
 # AirFlow
 
@@ -55,4 +55,22 @@ Obs_air must be sorted since we need to compute the rolling averages.
 ### 3) process_data()
 
 This function reads the table obs_air and accumulates the values and observations for each parameter into the table indicators (from airquality database) for each combination of (country,city, date, and hour). With these accumulated values, we compute the hourly averages of the parameters, and in every insertion, the 24-hour rolling averages are computed based on hourly averages of the parameters.    After the computation of the rolling averages, Air Quality Index of pm25 and pm10 are computed and saved into the Indicators table.
+
+# Graphon Optimization
+Graphons are limits of sequences of growing graphs. Graphons were invented to solve problems combinatorial problems on graphs asymptotically. Graphons are the ideal tool to model large networks.
+
+In my PhD, I worked on the conjecture the most typical random networks satisfying combinatorial constraints like the density of edges, density of triangles, etc, can be represented by stepfunctions, which are functions defined on the unit square $[0,1]^2$. They are locally constant on squares $U \times U$ where $U$ is an interval in $[0,1]$. 
+
+The code in the folder graphon_optimization computes the optimal stepfunctions for some combinatorial constraints.
+
+
+
+
+
+
+
+
+
+
+
 
