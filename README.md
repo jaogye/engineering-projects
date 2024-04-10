@@ -91,3 +91,13 @@ In the folder, there are 2 python files:
 2) utildb.py : contain functions to connect to the database and validate data.
 
 
+# Fake_erp_data
+
+This is a project in progress. This idea is to create an example of an ERP database for a retail business.
+
+The retail_transactions.py file contains all the functions for recording accounting transactions.
+
+The main program is transaction_generator.py, which generates random documents to be consumed by accounting transactions.
+
+
+
