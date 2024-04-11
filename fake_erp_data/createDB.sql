@@ -1240,7 +1240,17 @@ INSERT INTO revenue_expense_categories (id, name, description, revenue_expense) 
 (17, 'Taxes and Licenses', 'Government-imposed taxes and fees for licenses required to operate the retail business.','E'),
 (18, 'Bank Fees and Interest', 'Fees charged by banks and interest on loans or credit lines.','E'),
 (19, 'Losses from Theft or Damage', 'Financial impact of inventory loss due to theft, damage, or other unforeseen events.','E'),
-(20, 'Miscellaneous', 'Other expenses that do not fit neatly into the above categories.','E');
+(20, 'Miscellaneous', 'Other expenses that do not fit neatly into the above categories.','E')
+(21, 'Sales of Goods', 'Direct income from the sale of products in store.','R'),
+(22, 'Online Sales', 'Income from products sold through the retailer''s online platform.','R'),
+(23, 'Service Fees', 'Revenue generated from services offered, such as custom fittings or personal shopping.','R'),
+(24, 'Extended Warranties', 'Income from selling extended warranty services for products.','R'),
+(25, 'Delivery Charges', 'Fees collected for delivering goods to the customer''s location.','R'),
+(26, 'Membership Fees', 'Revenue from customers subscribing to a membership program for benefits.','R'),
+(27, 'Rental Income', 'Income from renting out part of the retail space to other businesses.','R'),
+(28, 'Franchise Fees', 'Fees collected from franchised outlets.','R'),
+(29, 'Sponsorship Income', 'Revenue from brands paying for product placement or endorsement within the store.','R'),
+(30, 'Returns and Handling Fees', 'Fees associated with processing returns or exchanges.','R');
 
 
 
@@ -1784,7 +1794,7 @@ CREATE TABLE purchases (
     id int PRIMARY KEY,
     number_transaction int ,
     purchase_order_id int references purchase_orders(id),
-    
+    branch_id INTEGER REFERENCES branches(id),    
     invoicenumber char(20), 
     transaction_type_id INTEGER NOT NULL REFERENCES transaction_types(id), 
     supplier_id INT REFERENCES suppliers(id),
@@ -1854,8 +1864,6 @@ CREATE TABLE purchase_orders (
     transaction_type_id int REFERENCES transaction_types(id), 
     payment_term_id INTEGER  REFERENCES payment_terms(id)
 );
-
-
 
 CREATE TABLE purchase_order_details (
     id INT PRIMARY KEY,
@@ -1950,13 +1958,16 @@ CREATE TABLE Payroll (
 );
 
 
+
+
+-- Auxiliary tables for accounting transactions 
+-- ==========================================================================================
 CREATE TABLE EmployeeDeductions (
     id INT PRIMARY KEY,
     payroll_id INT NOT NULL REFERENCES Payroll(id) on delete cascade,
     deduction_id INT NOT NULL  REFERENCES Deductions(id),
     amount DECIMAL(10, 2) NOT NULL
 );
-
 
 
 
@@ -2021,7 +2032,25 @@ insert into contract_types(id, name, payment_type_id, party_type_id) values
 (3, 'Insurance Policy', 9, 8),
 (4, 'Lease agreement', 61, 3),
 (5, 'Utility contract', 15, 7),
-(6, 'Loan', 61,8) ;
+
+
+-- Loan Table
+CREATE TABLE loans (
+    id int PRIMARY KEY,
+    name char(50) not null,
+    bank_id INT not null REFERENCES banks(id),
+    user_id INT not null REFERENCES users(id),
+    expense_category_id INT not null REFERENCES revenue_expense_categories(id),
+    business_unit_id int not null REFERENCES business_units(id),
+    loan_date DATE NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    monthly_amount DECIMAL(10, 2) NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    interest_rate DECIMAL(5,2),
+    terms TEXT,
+    created_at date DEFAULT getdate()    
+);
 
 
 -- Contract Table
@@ -2038,11 +2067,11 @@ CREATE TABLE contracts (
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     monthly_amount DECIMAL(10, 2) NOT NULL,
-    annual_amount DECIMAL(10,2) NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
     interest_rate DECIMAL(5,2),
     policy_type_id int references policy_types(id), 
-    created_at date DEFAULT getdate(),
-    terms TEXT
+    terms TEXT,
+    created_at date DEFAULT getdate()    
 );
 
 insert into contracts(id, name, contract_type_id, party_id, location_id, branch_id, expense_category_id, business_unit_id, start_date, end_date, monthly_amount, annual_amount) values
@@ -2050,18 +2079,19 @@ insert into contracts(id, name, contract_type_id, party_id, location_id, branch_
  (2, 'Blue sky',                    1,     4, 12, 1,1,1, '2024-01-01', '2024-12-31', 500, 6000) ; 
 
 
-
-
 CREATE TABLE PaymentSchedule (
     id INT PRIMARY KEY,
     contract_id int references contracts(id),
+    loan_id int references loans(id),
     due_date DATE NOT NULL,
     payment_status_id int references payment_statuses(id), 
     amount DECIMAL(10,2) NOT NULL,
-    interest_paid DECIMAL(10,2) NOT NULL default 0
+    interest_paid DECIMAL(10,2) NOT NULL default 0,
+    principal_paid DECIMAL(10,2) NOT NULL default 0,
+    remaning_balance DECIMAL(10,2) NOT NULL default 0
   );
 
-
+ 
 insert into PaymentSchedule(id, contract_id, due_date, payment_status_id, amount)
 values 
 (1, 1, '2024-01-01', 1, 1000), 

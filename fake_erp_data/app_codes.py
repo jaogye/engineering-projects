@@ -102,6 +102,7 @@ PS_UNPAID = 1  #The payment is unpaid
 PS_PARTIAL = 2  # The payment is partially completed
 PS_PAID = 3  # The payment is complete
 
+
 CREDITCARD_COMISSION = 0.06
 CREDITCARD_COMISSION = decimal.Decimal(str(CREDITCARD_COMISSION))
 VAT_TAX = 0.12

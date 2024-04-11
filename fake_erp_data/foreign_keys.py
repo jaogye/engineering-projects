@@ -1,4 +1,5 @@
 from utildb import getconn
+from topological_sort import Graph
 
 # Establish a connection to the database
 conn = getconn()
@@ -26,7 +27,7 @@ def print_foreign_key_relations():
 
     with open('Foreign_Keys.txt', 'w') as file: 
         for row in rows:
-           file.write(f"Foreign Key: {row.parent_table}.{row.parent_column} -> {row.referenced_table}.{row.referenced_column}")
+           file.write(f"Foreign Key: {row.parent_table}.{row.parent_column} -> {row.referenced_table}.{row.referenced_column}\n")
 
 # Call the function to print foreign key relations
 print_foreign_key_relations()
