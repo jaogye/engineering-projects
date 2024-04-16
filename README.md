@@ -93,11 +93,23 @@ In the folder, there are 2 python files:
 
 # Fake_erp_data
 
-This is a project in progress. This idea is to create an example of an ERP database for a retail business.
-
-The retail_transactions.py file contains all the functions for recording accounting transactions.
+This is a project that simulated data of an ERP database for a retail business. The ERP base is a SQL Server database.
 
 The main program is transaction_generator.py, which generates random documents to be consumed by accounting transactions.
 
+The rest of programs are:
+
+retail_transactions.py  contains all the functions for recording accounting transactions for a retail.
+app_codes.py sets the constants for the REP
+create_table_strings.py contains the string to create the tables
+randomdocs.py contains functions to generate python dictionaries (docs) containing data of accounting transactions
+randomrows.py contains functions to generate data of master tables 
+utildb.py contains general functions to connect and manipulate the database
+
+Usage:
+
+1) Create a blank database in Sql Server
+2) Set the user, passsword, database_name and server in util.db 
+3) Run transaction_generator.py
 
 

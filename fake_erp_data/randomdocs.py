@@ -70,12 +70,51 @@ def get_invoice_reception(date):
         
     doc = {}        
     doc['purchase_order_id'] = 0
-    doc['reception_date'] = date     
+    doc['invoice_reception_date'] = date     
     doc['user_id'] = getRandomUser()
     doc['invoicenumber'] = str(random.randint(0,100000) )
 
     # print('AT_purchase_transaction ', doc )         
     #AT_invoice_reception(conn, doc)           
+    return doc     
+
+
+def get_service_order(date):
+    doc = {}
+    doc['order_date'] = date
+    doc['expected_delivery_date'] = date
+    doc['vendor_id'] = getRandomVendor()
+    service_id, _ = getRandomService()
+    doc['service_id'] = service_id 
+    doc['total_amount'] = random.randint(200,5000)
+    doc['expense_category_id'] = getRandomExpenseCategory()
+    doc['business_unit_id'] = getRandomBusinessUnit()  
+    doc['branch_id'] = getRandomBranch()
+    doc['location_id'] = getRandomLocation()
+    doc['payment_term_id'] = getRandomPaymentTerm()
+    doc['user_id'] = getRandomUser()    
+    return doc     
+
+
+
+def get_service_acceptance(date, service_order_id):
+    doc = {}
+    doc['acceptance_date'] = date
+    doc['service_order_id'] = service_order_id
+    doc['worked_hours'] = random.randint(3,10)
+    doc['user_id'] = getRandomUser()    
+
+    return doc     
+
+
+
+def get_service_payment(date, service_order_id):
+    doc = {}
+    doc['payment_date'] = date
+    doc['service_order_id'] = service_order_id
+    doc['payment_method_id'] = getRandomPaymentMethod()
+    doc['user_id'] = getRandomUser()
+
     return doc     
 
 
@@ -169,6 +208,7 @@ def get_return_and_refund(date, sale_id ):
     doc['return_date'] = date
     doc['invoicenumber'] = invoicenumber 
     doc['product_id'] = product_id
+    doc['sale_id'] = sale_id
     doc['payment_method_id'] = getRandomPaymentMethod()
     doc['return_quantity'] = quantity
     doc['reason'] = reason
@@ -251,3 +291,41 @@ def get_service_purchase_order(date):
         #print('AT_service_purchase_order ', date, vendor_id, branch_id, payment_term_id) 
         #AT_service_purchase_order(conn, doc) 
     return doc 
+
+
+def get_insurance_payment(date): 
+    doc = {}
+    doc['contract_date'] = date
+    doc['branch_id'] = getRandomBranch()
+    doc['location_id'] = getRandomLocation()
+    doc['provider_id'] = getRandomServiceProvider()
+    doc['policy_type_id']= getRandomPolicyType()
+    doc['name'] = ''
+    doc['coverage_details'] = 'Good insurance police'
+    doc['start_date'] = (date + timedelta(days=3)) 
+    doc['end_date'] = (date + timedelta(days=60)) 
+    doc['total_amount'] = random.randint(5000,15000)
+    doc['monthly_amount'] = random.randint(500,1500)
+    doc['payment_method_id'] = getRandomPaymentMethod()
+    doc['expense_category_id'] = getRandomExpenseCategory()
+    doc['revenue_category_id'] = getRandomRevenueCategory()
+    doc['business_unit_id'] = getRandomBusinessUnit()
+    doc['user_id'] = getRandomUser()
+    return doc
+
+def get_insurance_reimbursements(date, policy_id): 
+    doc = {}
+    doc['contract_id'] = policy_id
+    doc['payment_date'] = date
+    doc['amount_paid']= random.randint(100,500)
+    doc['payment_method_id'] = getRandomPaymentMethod()
+    doc['user_id'] = getRandomUser()
+    return doc
+    
+def get_insurance_amortization(date, policy_id):
+    doc = {}
+    doc['contract_id'] = policy_id
+    doc['amortization_date'] = date
+    doc['expense_id'] = getRandomExpenseCategory() 
+    doc['user_id'] = getRandomUser()
+    return doc

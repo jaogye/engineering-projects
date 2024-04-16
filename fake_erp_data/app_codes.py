@@ -8,7 +8,7 @@ PAYROLL_GENERATION=17 # Payroll generation
 PURCHASE_INVENTORY_CASH=18 # Purchase of Inventory on Cash
 PURCHASE_INVENTORY_CREDIT=19 # Purchase of Inventory on Credit
 PURCHASE_PRODUCTS = 24 # Purchase products
-PURCHASE_SERVICES = 25 # Purchase services
+ACCEPTANCE_SERVICES = 25 # Acceptance the order services
 PAYMENT_FROM_CUSTOMERS=7 # Payment from Customers
 PAYMENT_SUPPLIER=16 # Payment to Supplier
 RETURN_PRODUCTS_ON_CASH=29 # Return of Products on Cash
@@ -19,9 +19,11 @@ PAYMENT_MORTGAGE_EXPENSES = 44 # Payment of mortgages
 OBTAINING_LOAN_FROM_BANK = 6 # Obtaining a Loan from Bank
 PAYMENT_INSURANCE = 9 # Payment of Insurance
 INSURANCE_REIMBURSEMET = 47 # Insurance reimbursements for the business.
+PURCHASE_ADVERTISING= 48 # Purchase of promotional activities.'
+PURCHASE_SUPPLIES= 49 # Purchase of supplies necessary for operation.
 INSURANCE_AMORTIZATION  = 60 # Insurance amortization
 PAYMENT_LEASE_AGREEMENT = 61 # Payment Lease Agreement
-
+PAYMENT_SERVICES = 62 # Payment of the accepted order services
 
 
 DEPRECIATION_EXPENSE_FOR_THE_PERIOD = 1 # Depreciation Expense for the Period
@@ -78,7 +80,7 @@ LEDGER_ACCOUNTS_PAYABLE = 6 # Amounts owed by the company to suppliers or vendor
 LEDGER_LOANS_PAYABLE = 7 # Amounts borrowed by the company from financial institutions or other lenders.
 LEDGER_TAXES_PAYABLE = 8 # Taxes owed by the company to government authorities, such as income taxes and sales taxes.
 LEDGER_COMMON_STOCK = 9 # Ownership equity representing the amount invested by shareholders in the company.
-LEDGER_ADDITIONAL_PAIDIN_CAPITAL = 10 # 
+LEDGER_ADDITIONAL_PAID_IN_CAPITAL = 10 # 
 LEDGER_RETAINED_EARNINGS = 11 # Accumulated earnings or losses of the company that have not been distributed to shareholders as dividends.
 LEDGER_SALES_REVENUE = 12 # Revenue generated from the sale of goods or services to customers.
 LEDGER_INTEREST_INCOME = 13 # Income earned from interest on loans, investments, or other interest-bearing assets.
@@ -89,6 +91,12 @@ LEDGER_TAX_EXPENSES = 17 # Expenses incurred by taxes
 LEDGER_PREPAID_INSURANCE_EXPENSES = 18 # Prepaid Insurance Expense
 LEDGER_INSURANCE_REIMBURSEMENT_INCOME = 19 # Insurance Reimbursement Income
 LEDGER_INSURANCE_EXPENSES = 20 # Insurance Expense
+LEDGER_PREFERRED_STOCK = 21
+LEDGER_FIXED_INVESTMENTS = 22
+LEDGER_NON_CASH_ASSETS = 23
+LEDGER_ACCUMULATED_DEPRECIATION = 24
+LEDGER_DEPRECIATION_EXPENSE = 25
+LEDGER_DIVIDEND_INCOME = 26
 
 # Purchase order codes
 PO_PENDIND =1 # The purchase order has been created but not yet processed or sent to the supplier
@@ -103,7 +111,14 @@ PS_PARTIAL = 2  # The payment is partially completed
 PS_PAID = 3  # The payment is complete
 
 
-CREDITCARD_COMISSION = 0.06
-CREDITCARD_COMISSION = decimal.Decimal(str(CREDITCARD_COMISSION))
-VAT_TAX = 0.12
-VAT_TAX = decimal.Decimal(str(VAT_TAX))
+CREDITCARD_COMISSION = decimal.Decimal(0.06)
+#CREDITCARD_COMISSION = decimal.Decimal(str(CREDITCARD_COMISSION))
+VAT_TAX = decimal.Decimal(0.12)
+#VAT_TAX = decimal.Decimal(str(VAT_TAX))
+
+
+CONTRACT_TYPE_PROPERTY_RENT = 1
+CONTRACT_TYPE_MORTGAGE = 2
+CONTRACT_TYPE_INSURANCE_POLICY = 3
+CONTRACT_TYPE_LEASE_AGREEMENT = 4
+CONTRACT_TYPE_UTILITY_CONTRACT = 5

@@ -1,0 +1,105 @@
+1) Write a detailed script to create the tables involved in inventory entry transations by purchase orders. Write the primary keys as 'id' with datatype int, and for foreign keys, use the suffix '_id'. 
+
+2) Write a detailed Python code for inventory entry transations by purchase orders include purchase orders and inventory transactions.
+
+
+
+Interest Income and Expense Transactions: While not cash transactions, these accounting processes reflect the gradual reduction in value of the company's long-term assets over time, affecting the financial statements.
+
+A large retail has many branches in many locations, this retail has many sales-points  
+and sell different product categories and interact with many product suppliers and many services providers.
+Write the relational tables involved in Interest Income and Expense Transactions for this retail.
+
+1) Write a detailed script to create the tables involved in Interest Income and Expense Transactions. Write the primary keys as 'id' with datatype int, and for foreign keys, use the suffix '_id'. Include InventoryTransaction, AccountsPayable or AccountsReceivable tables if it is necessary.
+2) Write a detailed Python code for Interest Income and Expense Transactions.
+
+
+
+    Sales Transactions: These are the most basic and frequent transactions, where goods or services are sold to customers in exchange for money. Sales can be made in cash, through credit card payments, or via online payment systems.
+
+    Purchase Transactions: Retail companies purchase inventory from suppliers or manufacturers. These transactions may involve direct payment (cash purchases) or trade credit, where payment is deferred to a later date.
+
+    Payroll Transactions: These involve payments to employees for their services. This includes salaries, wages, bonuses, and deductions for taxes, insurance, and other benefits.
+
+    Rent or Mortgage Payments: Payments for the physical space the retail business occupies, whether it's rented or owned (with mortgage payments).
+
+    Utility Payments: Payments for utilities such as electricity, water, gas, and internet services required to operate the retail space.
+
+    Tax Payments: Retail companies are required to collect sales tax from customers on sales transactions (where applicable) and remit them to the government. They also need to manage income tax, payroll tax, property tax, and other relevant taxes.
+
+    Loan Payments: If a retail company has taken out loans to finance its operations or expand its business, it will need to make regular payments to service the debt. This includes both the principal and interest components.
+
+    Credit Card Transactions: These involve receiving payments from customers via credit cards. The retail company will have to manage the processing of these transactions, including fees and settlements with the credit card companies.
+
+    Insurance Payments: Payments for various types of insurance, such as liability insurance, property insurance, and workers' compensation insurance, to protect the business from various risks.
+
+    Vendor and Supplier Payments: Apart from purchasing inventory, retail companies may engage in transactions with vendors for services such as marketing, cleaning, maintenance, and logistics.
+
+
+
+Customer Refunds and Returns: Managing transactions related to returning money to customers for returned products or services that didn't meet their expectations.
+
+Depreciation and Amortization: While not cash transactions, these accounting processes reflect the gradual reduction in value of the company's long-term assets over time, affecting the financial statements.
+
+Interest Income and Expense Transactions: If a retail company invests excess cash in interest-bearing accounts or securities, it will earn interest income. Similarly, if the company has debt, it will incur interest expenses.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Write DML statements to create tables in postgres for the following business concepts for  "Utilities Expense" subsystem of an ERP for a commercial company.
+You can create additional necessary tables for this data model.  Business concepts:  Location,  Utility Type, Service Provider, Contract.
+
+
+Write DML statements to create tables in postgres for an accounting system
+
+
+
+
+
+What are transactions tables for an ERP for a commercial company. Write DML statements to create these tables in postgres.
+
+
+Business Unit,
+Contract, 
+Customer,                      
+Customer Segment, Department,                    
+Employee,
+Employee Type,
+Expense Category,
+Invoice,
+Landlord,
+Lease Agreement,
+Location,
+Payment Method,
+Payment Status,
+Payment Terms,
+Position,
+Product,
+Product/Service,
+Project,
+Promotion,
+Purchase Order,
+Sales Channel,                 
+Sales Representative, 
+Salesperson,          
+Service Provider, 
+Supplier,
+Utility Type,
+Vendor Category

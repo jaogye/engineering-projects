@@ -3,6 +3,7 @@ import json
 import pyodbc
 from sqlalchemy import create_engine
 from topological_sort import Graph
+from create_table_strings import str_create_table
 
 def getconn():
     # Path to the file of keys
@@ -50,11 +51,16 @@ def read_sql_query(sql2, conn):
     columns = []
     collist = sql2[sql.find("SELECT")+6:sql.find("FROM")].split(',') 
     for col in collist:
-        ll = col.split('.')
-        if len(ll) == 1:
-           columns.append(ll[0].strip())
-        else:       
-           columns.append(ll[1].strip()) 
+        col = col.strip()
+        ll1 = col.split(' ')
+        if len(ll1) == 1:
+            ll2 = col.split('.')
+            if len(ll2) == 1:
+               columns.append(ll2[0].strip())
+            else:       
+               columns.append(ll2[1].strip()) 
+        else:        
+            columns.append(ll1[1].strip()) 
     cursor = conn.cursor()
     cursor.execute(sql)
     df = pd.DataFrame(columns=columns)
@@ -179,3 +185,17 @@ def tableTopologicalOrder(conn):
     for row in rows:
         g.addEdge(row.parent_table, row.referenced_table)
     return g.topologicalSort()
+
+
+
+
+def create_table(conn, table_name):
+    cursor = conn.cursor()
+    if check_table_exists(conn, table_name):
+      cursor.execute(f"drop table {table_name};")
+      conn.commit()
+
+    ss = str_create_table[table_name.lower()] 
+    cursor.execute(ss)
+    conn.commit()
+

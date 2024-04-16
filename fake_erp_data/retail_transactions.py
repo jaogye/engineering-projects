@@ -70,11 +70,19 @@ def AT_invoice_reception(conn, doc):
 
     # Fetch purchase order details
     cursor.execute("""
-        SELECT a.supplier_id, a.branch_id, a.transaction_type_id, a.payment_term_id, b.location_id 
+        SELECT a.supplier_id, a.branch_id, a.payment_term_id, b.location_id 
                    FROM Purchase_Orders a, branches b 
                    WHERE a.id = ? AND a.branch_id=b.id
     """, (doc['purchase_order_id'],))
-    supplier_id, branch_id, transaction_type_id, payment_term_id, location_id = cursor.fetchone()
+    supplier_id, branch_id,  payment_term_id, location_id = cursor.fetchone()
+
+    cursor.execute("SELECT net_due_days FROM payment_terms WHERE id=?", (payment_term_id,) )    
+    net_due_days = cursor.fetchone()[0]    
+
+    if  net_due_days <= 0:            
+        transaction_type_id = PURCHASE_INVENTORY_CASH
+    else:   
+        transaction_type_id = PURCHASE_INVENTORY_CREDIT
 
     number_transaction = newnumbertransaction(conn,transaction_type_id)
     # Fetch purchase order details
@@ -87,12 +95,12 @@ def AT_invoice_reception(conn, doc):
     purchase_amount = sum(quantity * price for _, quantity, price in order_details)    
     cursor.execute("""
             INSERT INTO purchases (id, transaction_type_id, number_transaction, reception_invoice_date, 
-                   invoicenumber, supplier_id, purchase_order_id, user_id, payment_term_id, location_id, 
+                   invoicenumber, supplier_id, purchase_order_id, user_id, payment_term_id, 
                    purchase_amount, branch_id)
-            VALUES (?,?,?,?, ? ,?,?, ?, ?,?,?, ?)
-        """, (purchase_id, transaction_type_id, number_transaction, doc['reception_invoice_date'],  
+            VALUES (?,?,?,?, ? ,?,?, ?, ?,?,?)
+        """, (purchase_id, transaction_type_id, number_transaction, doc['invoice_reception_date'],  
               doc['invoicenumber'], supplier_id, doc['purchase_order_id'], doc['user_id'], payment_term_id, 
-              location_id, purchase_amount, branch_id))
+              purchase_amount, branch_id))
   
     
     for product_id, quantity, price in order_details:        
@@ -104,6 +112,7 @@ def AT_invoice_reception(conn, doc):
         """, (detail_id, purchase_id, product_id, quantity, quantity*price))
 
     conn.commit()
+
 
 def AT_inventory_entry(conn, doc):
     """
@@ -275,47 +284,174 @@ def AT_supplier_payment(conn, doc):
     return payment_id
 
 
-def AT_service_purchase_order(conn, doc):
+def AT_service_order(conn, doc):
     """
     Creates a service purchase order and updates Accounts Payable.
     
     :param conn: pyodbc connection to the database 
     :param doc: dictionary containing the rest of the transaction parameters
     :param doc['order_date']: Transaction date
+    :param doc['expected_delivery_date']
     :param doc['vendor_id']: ID of the vendor providing the service.
+    :param doc['service_id']: ID of the service.
+    :param doc['total_amount']:    
+    :param doc['expense_category_id']:
+    :param doc['business_unit_id']:  
     :param doc['branch_id']: ID of the branch ordering the service.
+    :param doc['location_id']: ID of the location ordering the service.    
     :param doc['payment_term_id']: Payment term 
-    :param doc['services_ordered']: List of tuples, each containing (service_id, cost).
+    :param doc['user_id']: ID of the user who record the order
     """    
     cursor = conn.cursor() 
-    total_amount = sum(cost for _, cost in doc['services_ordered'])
+
+  
     purchase_order_id = newid(conn2, 'purchase_orders') 
     order_status_id = PO_PENDIND
-    cursor.execute("SELECT net_due_days FROM payment_terms WHERE id=?", (doc['payment_term_id'],) )    
-
-    net_due_days = cursor.fetchone()[0]       
-    expected_delivery_date = (doc['order_date'] + timedelta(days=net_due_days)).strftime('%Y-%m-%d') 
-    if  net_due_days <= 0:            
-        transaction_type_id = PURCHASE_INVENTORY_CASH
-    else:   
-        transaction_type_id = PURCHASE_INVENTORY_CREDIT
-
-    # Insert purchase order
+    # Insert service order
     cursor.execute("""
-        INSERT INTO Purchase_Orders (id, supplier_id, order_date, expected_delivery_date, 
-                   branch_id,  total_amount, order_status_id, payment_term_id, transaction_type_id, user_id )
-        VALUES (?,?,?,?,?,?,?, ?)
-    """, (purchase_order_id, doc['vendor_id'], doc['order_date'], expected_delivery_date, 
-          doc['branch_id'],  total_amount, order_status_id, doc['payment_term_id'], transaction_type_id, doc['user_id'] ))
-
-    for service_id, cost in doc['services_ordered']:
-        id = newid(conn2, 'purchase_order_details')        
-        cursor.execute(f"""
-            INSERT INTO purchase_order_details (id, purchase_order_id, product_id, quantity, price, pending)
-            VALUES (?,?, ?, 1, ?, 1)
-        """,(id, purchase_order_id, service_id, cost))
+        INSERT INTO service_orders (id, vendor_id, service_id, order_date, expected_delivery_date, 
+                branch_id,  total_amount, order_status_id, payment_term_id,  user_id, 
+                expense_category_id, business_unit_id  )
+        VALUES (?,?,?,?,?,  ?,?,?,?,?,  ?,?)
+    """, (purchase_order_id, doc['vendor_id'], doc['service_id'], doc['order_date'], doc['expected_delivery_date'], 
+          doc['branch_id'],  doc['total_amount'], order_status_id, doc['payment_term_id'], doc['user_id'],
+            doc['expense_category_id'],  doc['business_unit_id'] ))
 
     conn.commit()
+    return purchase_order_id
+
+
+
+def AT_service_acceptance(conn, doc):
+    """
+    Acceptance a service purchase order and loads into Accounts Payable.
+    
+    :param conn: pyodbc connection to the database 
+    :param doc: dictionary containing the rest of the transaction parameters
+    :param doc['acceptance_date']: Transaction date
+    :param doc['service_order_id']: ID of the service order.
+    :param doc['worked_hours']: 
+    """    
+    cursor = conn.cursor() 
+    transaction_type_id = ACCEPTANCE_SERVICES
+    description = "Acceptance of the service"
+    number_transaction = newnumbertransaction(conn,transaction_type_id)
+    cursor.execute("""SELECT order_date, vendor_id, service_id, branch_id, location_id, total_amount, 
+                   payment_term_id, expense_category_id, business_unit_id
+                   FROM service_orders WHERE id=?""", (doc['service_order_id'],))
+    
+    order_date, vendor_id, service_id, branch_id, location_id, total_amount, \
+    payment_term_id, expense_category_id, business_unit_id = cursor.fetchone()
+
+    cursor.execute("SELECT net_due_days FROM payment_terms WHERE id=?", (payment_term_id,) )    
+    net_due_days = cursor.fetchone()[0]    
+    if type(order_date) is str:
+       order_date = datetime.strptime(order_date, '%Y-%m-%d')
+
+    expected_delivery_date = (order_date + timedelta(days=net_due_days)).strftime('%Y-%m-%d') 
+
+    # Insert service order
+    cursor.execute("""UPDATE service_orders SET acceptance_date=?,worked_hours=?, order_status_id=? 
+                   WHERE id=?
+    """, (doc['acceptance_date'], doc['worked_hours'], PO_RECEIVEDFULL, doc['service_order_id']))
+
+    accountspayable_id = newid(conn2, 'accountspayable') 
+    payment_status_id = PS_UNPAID 
+
+    cursor.execute("""
+            INSERT INTO AccountsPayable (id, BillDate, amount_due, balance, due_date, party_id, 
+                   payment_status_id, service_order_id, transaction_type_id, number_transaction, user_id)
+            VALUES (?,?,?,?, ?,?,?,?, ?,?, ?)""", 
+            (accountspayable_id, doc['acceptance_date'], total_amount, total_amount, expected_delivery_date, 
+             vendor_id, payment_status_id, doc['service_order_id'], transaction_type_id, number_transaction, doc['user_id']) )
+
+    # posting to the ledger
+    transaction_id = newid(conn2, 'transactions')
+    cursor.execute( f"""INSERT transactions(id, transaction_date, transaction_type_id, number_transaction, user_id)
+    VALUES(?,?,?,?,?) """, (transaction_id, doc['acceptance_date'], transaction_type_id, number_transaction, doc['user_id']) ) 
+
+    cursor.execute("""
+            INSERT INTO transaction_details( transaction_id, ledger_account_id,  debit_credit, value,
+            party_id , user_id , branch_id, location_id, 
+            product_service_id, description )
+            VALUES (?,?,'C', ?,?,?,?,?,?,?)
+        """, (transaction_id, LEDGER_ACCOUNTS_PAYABLE, total_amount, vendor_id, doc['user_id'], 
+              branch_id, location_id, service_id, description ) )
+
+    cursor.execute("""
+            INSERT INTO transaction_details( transaction_id, ledger_account_id,  debit_credit, value,
+            party_id , user_id , branch_id, location_id, revenue_expense_category_id, businessunit_id, 
+            product_service_id, description )
+            VALUES (?,?,'D', ?,?,?,?,?,?,?,?,?)
+        """, (transaction_id, LEDGER_OPERATING_EXPENSES, total_amount, vendor_id, doc['user_id'], 
+              branch_id, location_id, expense_category_id, business_unit_id, service_id, description ) )
+
+    cursor = conn.cursor() 
+    return accountspayable_id
+
+
+def AT_service_payment(conn, doc):
+    """
+    Records a payment made to a vendor for a service order.
+
+    :param conn: pyodbc connection to the database 
+    :param doc: dictionary containing the rest of the transaction parameters    
+    :param doc['payment_date']: when the payment is done
+    :param doc['service_order_id']: 
+    :param doc['payment_method_id']:
+    :param doc['user_id']:
+    """
+    cursor = conn.cursor()
+    description = "Payments of services"    
+    transaction_type_id = PAYMENT_SERVICES
+    number_transaction = newnumbertransaction(conn,transaction_type_id)
+
+    cursor.execute("""SELECT a.id, b.branch_id, b.location_id, a.amount_due, b.vendor_id 
+                   FROM accountspayable a, service_orders b
+                   WHERE a.service_order_id=b.id AND a.service_order_id=?""", (doc['service_order_id'],))
+    response = cursor.fetchone()
+
+    if response is None:
+       raise Exception("Invalid service_order_id")
+
+    cursor.execute("""UPDATE service_orders SET order_status_id=?
+                       WHERE id =?""", (PO_CLOSED,  doc['service_order_id']))
+
+    accountspayable_id, branch_id, location_id, amount_paid, vendor_id = response
+    payment_id = newid(conn2, 'payments')    
+    cursor.execute("""UPDATE accountspayable SET balance = balance - ?, payment_status_id=?
+                       WHERE id =?""", (amount_paid, PS_PAID, accountspayable_id))
+
+    # Insert supplier payment record        
+    cursor.execute("""
+        INSERT INTO Payments (id, party_id, amount, description, payment_date, payment_method_id, 
+        transaction_type_id, number_transaction, accountspayable_id, user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,( payment_id, vendor_id, amount_paid, description, doc['payment_date'], doc['payment_method_id'], 
+         transaction_type_id, number_transaction, accountspayable_id, doc['user_id'] ) )
+
+    # posting to the ledger
+    transaction_id = newid(conn2, 'transactions')
+    cursor.execute( f"""INSERT transactions(id, transaction_date, transaction_type_id, number_transaction, user_id)
+    VALUES(?,?,?,?,?) """, (transaction_id, doc['payment_date'], transaction_type_id, number_transaction, doc['user_id']) ) 
+
+    cursor.execute("""
+            INSERT INTO transaction_details( transaction_id, ledger_account_id,  debit_credit, value,
+            party_id , user_id , branch_id, location_id )                     
+            VALUES (?,?,'D', ?,?,?,?,?)
+        """, (transaction_id, LEDGER_ACCOUNTS_PAYABLE, amount_paid, vendor_id, doc['user_id'], 
+              branch_id, location_id ) )
+
+    cursor.execute("""
+            INSERT INTO transaction_details( transaction_id, ledger_account_id,  debit_credit, value,
+            party_id , user_id , branch_id, location_id )                     
+            VALUES (?,?,'C', ?,?,?,?,?)
+        """, (transaction_id, LEDGER_CASH, amount_paid, vendor_id, doc['user_id'], 
+              branch_id, location_id ) )
+
+    conn.commit()
+    return payment_id
+
 
 # ==========================================================================
 
@@ -510,7 +646,7 @@ def AT_sale_order(conn, doc):
     
     # Insert sale order
     cursor.execute("""
-        INSERT INTO sale_Orders (id, customer_id, order_date, expected_delivery_date, branch_id, 
+        INSERT INTO sale_orders (id, customer_id, order_date, expected_delivery_date, branch_id, 
                total_amount, order_status_id, payment_term_id, transaction_type_id, user_id)
         VALUES (?,?,?,?, ?,?,?,?,?, ?)
     """, (sale_order_id, doc['customer_id'], doc['order_date'], expected_delivery_date, doc['branch_id'], 
@@ -636,7 +772,7 @@ def AT_sale_transaction(conn, doc):
 
     accountsreceivable_id, payment_id = None, None
     if net_due_days > 0:
-        accountsreceivable_id = newid(conn2, 'AccountsReceivable') 
+        accountsreceivable_id = newid(conn2, 'accountsreceivable') 
         payment_status_id = PS_UNPAID 
         due_date = (doc['sale_date'] + timedelta(days=net_due_days)).strftime('%Y-%m-%d') 
         cursor.execute("""
@@ -653,7 +789,7 @@ def AT_sale_transaction(conn, doc):
         if payment_name=='Credit Card':
            transaction_fee = CREDITCARD_COMISSION * total_amount
            description = "Payment using Credit Card"
-           payment_id = newid(conn2, 'Payments')
+           payment_id = newid(conn2, 'payments')
            cursor.execute("""
            INSERT INTO Payments (id, party_id, amount, transaction_fee, description, payment_date, payment_method_id, 
                           sale_id, transaction_type_id, number_transaction, user_id)
@@ -748,7 +884,7 @@ def AT_customer_payment(conn, doc):
     response = cursor.fetchone()
     
     if response:
-        payment_id = newid(conn2, 'Payments')
+        payment_id = newid(conn2, 'payments')
         sale_id, branch_id, location_id, customer_id = response
         cursor.execute("""UPDATE accountsreceivable SET balance = balance - ?, payment_status_id=?
                        WHERE id =?""", (doc['amount_paid'], PS_PAID, doc['accountsreceivable_id']))
@@ -789,32 +925,41 @@ def AT_return_and_refund(conn, doc):
     Processes a product return, adjusts inventory, and issues a refund.
     
     :param conn: pyodbc connection to the database 
-    :param doc: dictionary containing the rest of the transaction parameters    
+    :param doc: dictionary containing the rest of the transaction parameters 
+    :param   
     :param doc['sale_detail_id']: ID of the sale detail for the returned product.
     :param doc['return_quantity']: Quantity of the product being returned.
     :param doc['reason']: Reason for the return.
+    :param doc['return_date'] = date
+    :param doc['invoicenumber'] 
+    :param doc['product_id'] 
+    :param doc['payment_method_id'] 
+    :param doc['user_id'] 
+    :param doc['approver_id'] 
+
     """
     cursor = conn.cursor()
     #return_date = refund_date = datetime.now().strftime('%Y-%m-%d')
             
     # Fetch sale ID and product ID from sale detail
-    cursor.execute("""SELECT b.sale_id, b.price, a.customer_id, a.payment_term_id, 
+    cursor.execute("""SELECT b.sale_id, b.price, a.customer_id, 
                    a.branch_id, b.quantity, c.location_id
                    FROM SalesDetails b, Sales a, branches c 
                    WHERE a.id=b.sale_id and a.branch_id=c.id and 
                    a.invoicenumber=? and b.product_id = ?""", (doc['invoicenumber'],doc['product_id']))
-    sale_id, price, customer_id, payment_term_id, branch_id, quantity, location_id = cursor.fetchone()
+    sale_id, price, customer_id, branch_id, quantity, location_id = cursor.fetchone()
     if doc['return_quantity'] > quantity:
        raise Exception("The return quantity is higher than the sold quantity")  
-    
-    cursor.execute("""SELECT payment_status_id FROM accountsreceivables WHERE sale_id=?
+        
+    cursor.execute("""SELECT payment_status_id FROM accountsreceivable WHERE sale_id=?
                    """, (sale_id,)) 
 
     response = cursor.fetchone()  
-    if response is None:
-       raise Exception("Account Receivable not found")  
+    if response is None:       
+       payment_status_id = PO_CLOSED
+    else:
+       payment_status_id = response[0] 
 
-    payment_status_id = response[0]
     if payment_status_id == PO_CLOSED:
        transaction_type_id = RETURN_PRODUCTS_ON_CASH
     else: 
@@ -828,49 +973,51 @@ def AT_return_and_refund(conn, doc):
     transaction_id = newid(conn2, 'inventory_transactions')
     cursor.execute("""
         INSERT INTO Inventory_Transactions (id, transaction_type_id, transaction_date, branch_id, 
-                   customer_id, purchase_order_id, user_id)
+                   customer_id, sale_id, user_id)
         VALUES (?,?,?, ? ,?,?,?)
-        """, (transaction_id, transaction_type_id, doc['entry_date'],  branch_id, 
-              customer_id, doc['purchase_order_id'], doc['user_id']))
+        """, (transaction_id, transaction_type_id, doc['return_date'],  branch_id, 
+              customer_id, sale_id, doc['user_id']))
 
     cursor.execute("SELECT quantity, cost_avg FROM Inventory WHERE product_id = ? and branch_id=?", (doc['product_id'],branch_id))
     result = cursor.fetchone()
     if result:
         _, cost_avg = result 
+        return_value = doc['return_quantity']*cost_avg
         # Update existing inventory record
         cursor.execute("""
             UPDATE Inventory SET quantity = quantity + ?, value = value+? WHERE product_id =? and branch_id = ?
-            """, (doc['return_quantity'], doc['return_quantity']*cost_avg, doc['product_id'] , branch_id))
+            """, (doc['return_quantity'], return_value, doc['product_id'] , branch_id))
     else:
         cursor.execute("SELECT cost FROM product_services WHERE id=?", (doc['product_id'] ,))
         cost_avg = cursor.fetchone()[0]
+        return_value = doc['return_quantity']*cost_avg
         # Insert new inventory record
-        inventory_id = newid(conn2, 'Inventory')
+        inventory_id = newid(conn2, 'inventory')
         cursor.execute(f"""
             INSERT INTO Inventory (id, product_id, branch_id, quantity, value) VALUES (?, ?, ?,?,?)
-        """, (inventory_id, doc['product_id'], branch_id, doc['return_quantity'], doc['return_quantity']*cost_avg))
+        """, (inventory_id, doc['product_id'], branch_id, doc['return_quantity'], return_value))
 
     detail_id = newid(conn2, 'inventory_transactions_detail')        
     # Record inventory transaction
     cursor.execute("""
         INSERT INTO inventory_transactions_detail (id, transaction_id, product_id, quantity, value)
         VALUES (?, ?, ?, ?, ?)
-    """, (detail_id, transaction_id, doc['product_id'], doc['return_quantity'], doc['return_quantity']*cost_avg))
+    """, (detail_id, transaction_id, doc['product_id'], doc['return_quantity'], return_value))
 
     # posting to the ledger
     transaction_id = newid(conn2, 'transactions')
     cursor.execute( f"""INSERT transactions(id, transaction_date, transaction_type_id, number_transaction, user_id)
-    VALUES(?,?,?,?,?) """, (transaction_id, doc['entry_date'], transaction_type_id, number_transaction, doc['user_id']) ) 
+    VALUES(?,?,?,?,?) """, (transaction_id, doc['return_date'], transaction_type_id, number_transaction, doc['user_id']) ) 
 
     # Record the refund 
     if transaction_type_id == RETURN_PRODUCTS_ON_CASH:
         description = "RETURN PRODUCTS ON CASH"
-        payment_id = newid(conn2, 'Payments')
+        payment_id = newid(conn2, 'payments')
         cursor.execute("""
         INSERT INTO Payments (id, party_id, amount, description, payment_date, payment_method_id, transaction_type_id,
         number_transaction, sale_id, user_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """,( payment_id, customer_id, doc['amount_paid'], description, doc['return_date'], doc['payment_method_id'], transaction_type_id,
+    """,( payment_id, customer_id, refund_amount, description, doc['return_date'], doc['payment_method_id'], transaction_type_id,
         number_transaction, sale_id, doc['user_id'] ) )
 
         cursor.execute("""
@@ -883,31 +1030,29 @@ def AT_return_and_refund(conn, doc):
     else: # Credit note generation 
         reason = "RETURN_PRODUCTS_ON_CREDIT_NOTES" 
 
-        accountsnote_id = newid(conn2, 'Payments')
+        accountsnote_id = newid(conn2, 'payments')
         cursor.execute("""
-        INSERT INTO AccountsNotes (id, debit_credit, party_id, sale_id, approver_id, 
-                      date_issued, user_id, Amount ,Reason, transaction_type_id, number_transaction)
-        VALUES (?,'C',?,? ,?,?,?,?, ?,?, ?, ?,?)
-        """, (accountsnote_id, customer_id, sale_id, doc['approver_id'], doc['return_date'], doc['user_id'], 
-              refund_amount, reason, transaction_type_id, number_transaction ) )
+        INSERT INTO AccountNotes (id, debit_credit, party_id, sale_id, approver_id, date_issued, 
+                       user_id, Amount ,Reason, transaction_type_id, number_transaction)
+        VALUES (?,'C',?,?,?,  ?,?,?, ?,?,?)
+        """, (accountsnote_id, customer_id, sale_id, doc['approver_id'], doc['return_date'], 
+              doc['user_id'], refund_amount, reason, transaction_type_id, number_transaction ) )
        
         cursor.execute("""
-            INSERT INTO transaction_details( transaction_id, ledger_account_id,  debit_credit, value,
+            INSERT INTO transaction_details( transaction_id, debit_credit, ledger_account_id, value,
             party_id , user_id , branch_id, location_id, product_service_id, description ) 
-            VALUES (?,?,'C', ?,?,?,?,?,?, ?)
+            VALUES (?,'C',?,? ,?,?,?,?, ?,?)
         """, (transaction_id, LEDGER_ACCOUNTS_RECEIVABLE, refund_amount, customer_id, doc['user_id'], 
               branch_id, location_id, doc['product_id'], reason ) )
 
     # posting to the ledger
 
     cursor.execute( """
-    INSERT transaction_details( transaction_id, ledger_account_id,  debit_credit, value, quantity,
+    INSERT transaction_details( transaction_id, debit_credit, ledger_account_id, value, quantity,
     party_id , user_id , branch_id, product_service_id, location_id ) 
-    SELECT ?, ?, 'D', b.value, b.quantity,
-    a.supplier_id, a.user_id, a.branch_id, b.product_id, c.location_id
-    FROM inventory_transactions a, inventory_transactions_detail b, branches c 
-    WHERE a.id=b.transaction_id AND a.branch_id=c.id AND a.number_transaction = ?""", 
-    (transaction_id, LEDGER_INVENTORY, number_transaction) ) 
+    VALUES (?,'D',?,?,?   ,?,?,?,?,?)                """, 
+    (transaction_id, LEDGER_INVENTORY, refund_amount,  doc['return_quantity'], customer_id, doc['user_id'],
+     branch_id, doc['product_id'], location_id) ) 
 
     conn.commit()
 
@@ -930,7 +1075,7 @@ def AT_rent_mortgage_payment(conn, doc):
     """
     cursor = conn.cursor()
     description = "Payments of rent or mortgage"
-    payment_id = newid(conn2, 'Payments')
+    payment_id = newid(conn2, 'payments')
     transaction_type_id = PAYMENT_RENT_EXPENSES
     number_transaction = newnumbertransaction(conn,transaction_type_id)
     
@@ -978,8 +1123,7 @@ def AT_rent_mortgage_payment(conn, doc):
             INSERT INTO transaction_details( transaction_id, ledger_account_id,  debit_credit, value,
             party_id , user_id ,  description, branch_id ) 
             VALUES (?,?,'C', ?,?,?,?,?)
-        """, (transaction_id, LEDGER_CASH, amount_paid, party_id, doc['user_id'], 
-               description, branch_id ) )
+        """, (transaction_id, LEDGER_CASH, amount_paid, party_id, doc['user_id'], description, branch_id ) )
 
     conn.commit()
 
@@ -989,7 +1133,7 @@ def AT_rent_mortgage_payment(conn, doc):
 
 
     #conn, payment_date, tax_type_id, branch_id, amount_paid, payment_method_id
-def AT_tax_payment(conn, doc):
+def AT_sales_tax_payment(conn, doc):
     """
     Records a tax payment in the database.
     
@@ -1007,7 +1151,7 @@ def AT_tax_payment(conn, doc):
     :
     """
     cursor = conn.cursor()
-    payment_id = newid(conn2, 'Payments')
+    payment_id = newid(conn2, 'payments')
     transaction_type_id = PAYMENT_SALES_TAXES
     number_transaction = newnumbertransaction(conn,transaction_type_id)
     
@@ -1258,31 +1402,32 @@ def AT_insurance_reimbursements(conn, doc):
             Credit (Cr.) Insurance Reimbursement Income: The income from the reimbursement is recorded, which may be specifically identified as non-operating income if so defined by the company's accounting policy.
 
     :param conn: Database connection object
-    :param doc['policy_id']: ID of the insurance policy for which the payment is made
+    :param doc['contract_id']: ID of the insurance policy for which the payment is made
     :param doc['payment_date']: payment date
     :param doc['amount_paid']: Amount of the payment
     :param doc['payment_method_id']:
+    :param doc['user_id']
     """
     cursor = conn.cursor()
     description = "Insurance reimbursements"
     transaction_type_id = INSURANCE_REIMBURSEMET
     number_transaction = newnumbertransaction(conn,transaction_type_id)
 
-    cursor.execute("""SELECT provider_id FROM InsurancePolicies WHERE id=?""", (doc['policy_id'],)) 
+    cursor.execute("""SELECT party_id, revenue_category_id FROM contracts WHERE id=?""", (doc['contract_id'],)) 
 
     response = cursor.fetchone()  
     if response is None:
        raise Exception("Account Receivable not found")  
 
-    provider_id = response.fetchone()[0]
+    provider_id, revenue_category_id = response
     payment_id = newid(conn2, 'payments')
     # Insert insurance payment record
     cursor.execute("""
         INSERT INTO Payments (id, party_id, amount, description, payment_date, payment_method_id, 
-                   transaction_type_id, number_transaction, policy_id, user_id)
+                   transaction_type_id, number_transaction, contract_id, user_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """,( payment_id, doc['provider_id'], doc['amount_paid'], description, doc['payment_date'], doc['payment_method_id'], 
-         transaction_type_id, number_transaction, doc['policy_id'], doc['user_id'] ) )
+    """,( payment_id, provider_id, doc['amount_paid'], description, doc['payment_date'], doc['payment_method_id'], 
+         transaction_type_id, number_transaction, doc['contract_id'], doc['user_id'] ) )
 
     # posting to the ledger
     transaction_id = newid(conn2, 'transactions')
@@ -1291,17 +1436,17 @@ def AT_insurance_reimbursements(conn, doc):
 
     cursor.execute("""
             INSERT INTO transaction_details( transaction_id, party_id, ledger_account_id,  debit_credit, value,
-            user_id, policy_id,  revenue_expense_category_id, description ) 
+            user_id, contract_id,  revenue_expense_category_id, description ) 
             VALUES (?,?,?,'C', ?,?,?,?,?)
-        """, (transaction_id, provider_id, LEDGER_INSURANCE_REIMBURSEMENT_INCOME, doc['annual_premium'], doc['user_id'], 
-             doc['policy_id'], description ) )
+        """, (transaction_id, provider_id, LEDGER_INSURANCE_REIMBURSEMENT_INCOME, doc['amount_paid'], 
+              doc['user_id'], doc['contract_id'], revenue_category_id, description ) )
 
     cursor.execute("""
             INSERT INTO transaction_details( transaction_id, party_id, ledger_account_id,  debit_credit, value,
-            user_id , policy_id, revenue_expense_category_id, description ) 
+            user_id , contract_id, revenue_expense_category_id, description ) 
             VALUES (?,?,?,'D', ?,?,?,?,?)
-        """, (transaction_id, provider_id, LEDGER_CASH, doc['annual_premium'], doc['user_id'], 
-               doc['policy_id'], description ) )
+        """, (transaction_id, provider_id, LEDGER_CASH, doc['amount_paid'], doc['user_id'], 
+               doc['contract_id'], revenue_category_id,  description ) )
 
     conn.commit()
 
@@ -1316,34 +1461,42 @@ def AT_insurance_amortization(conn, doc):
             Credit (Cr.) Prepaid Insurance Expense: Reduces the value of the prepaid asset, as part of this service has now been consumed.
 
     :param conn: Database connection object
-    :param doc['policy_id']: ID of the insurance policy for which the payment is made
+    :param doc['contract_id']: ID of the insurance policy for which the payment is made
     :param doc['amortization_date']: payment date
-    :param doc['expense_id']: 
-    :param doc['amount_paid']: Amount of the payment
+    :param doc['user_id']
     """
     cursor = conn.cursor()
     description = "Insurance amortization"
     transaction_type_id = INSURANCE_AMORTIZATION
     number_transaction = newnumbertransaction(conn,transaction_type_id)
 
+    cursor.execute("""SELECT party_id, location_id, branch_id, expense_category_id, business_unit_id, 
+                   monthly_amount FROM Contracts WHERE id=?  """, (doc['contract_id'],) )
+
+    provider_id, location_id, branch_id, expense_category_id, business_unit_id, monthly_amount =cursor.fetchone()
     # posting to the ledger
     transaction_id = newid(conn2, 'transactions')
     cursor.execute( f"""INSERT transactions(id, transaction_date, transaction_type_id, number_transaction, user_id)
-    VALUES(?,?,?,?,?) """, (transaction_id, doc['payment_date'], transaction_type_id, number_transaction, doc['user_id']) ) 
+    VALUES(?,?,?,?,?) """, (transaction_id, doc['amortization_date'], transaction_type_id, 
+                            number_transaction, doc['user_id']) ) 
 
     cursor.execute("""
             INSERT INTO transaction_details( transaction_id, party_id, ledger_account_id,  debit_credit, value,
-            user_id, policy_id,  revenue_expense_category_id, description ) 
-            VALUES (?,?,?,'D',?, ?,?,?,?)
-        """, (transaction_id, doc['provider_id'], LEDGER_PREPAID_INSURANCE_EXPENSES, doc['annual_premium'], 
-              doc['user_id'], doc['policy_id'], doc['expense_id'], description ) )
+            user_id, contract_id,  revenue_expense_category_id, businessunit_id, branch_id, 
+                   location_id, description ) 
+            VALUES (?,?,?,'D',?, ?,?,?,?,?,  ?,?)
+        """, (transaction_id, provider_id, LEDGER_PREPAID_INSURANCE_EXPENSES, monthly_amount, 
+              doc['user_id'], doc['contract_id'],  expense_category_id, business_unit_id, branch_id, 
+              location_id, description ) )
 
     cursor.execute("""
             INSERT INTO transaction_details( transaction_id, party_id, ledger_account_id,  debit_credit, value,
-            party_id , user_id , policy_id, revenue_expense_category_id, description ) 
-            VALUES (?,?,?,'C', ?,?,?,?,?)
-        """, (transaction_id, doc['provider_id'], LEDGER_INSURANCE_EXPENSES, doc['annual_premium'], doc['user_id'], 
-               doc['policy_id'], doc['expense_id'], description ) )
+            user_id , contract_id, revenue_expense_category_id, businessunit_id, branch_id, 
+                   location_id, description ) 
+            VALUES (?,?,?,'C', ?,?,?,?,?,  ?,?,?)
+        """, (transaction_id, provider_id, LEDGER_INSURANCE_EXPENSES, monthly_amount, 
+              doc['user_id'], doc['contract_id'], expense_category_id, business_unit_id, branch_id, 
+              location_id, description ) )
 
     conn.commit()
 
@@ -1357,59 +1510,69 @@ def AT_insurance_payment(conn, doc):
             Credit (Cr.) Cash or Banks: This asset is decreased since the company is disbursing cash to pay the premium.
 
     :param conn: Database connection object
-    :param doc['payment_date']: payment date
+    :param doc['contract_date']: contract date
+    :param doc['name']:
     :param doc['branch_id']:
+    :param doc['location_id']:
     :param doc['provider_id']:
-    :param doc['policy_type']:   -- e.g., 'Liability', 'Property', 'WorkersComp'
+    :param doc['policy_type_id']:   -- e.g., 'Liability', 'Property', 'WorkersComp'
     :param doc['coverage_details']:
     :param doc['start_date']:
     :param doc['end_date']:
-    :param doc['annual_premium']: 
+    :param doc['total_amount']: 
+    :param doc['montly_amount']:     
     :param doc['payment_method_id']:
+    :param doc['expense_category_id']:
+    :param doc['revenue_category_id']:    
+    :param doc['business_unit_id']:
+    :param doc['user_id']:
+    
     """    
     cursor = conn.cursor()
     description = "Payments of insurance policy"
     transaction_type_id = PAYMENT_INSURANCE
     number_transaction = newnumbertransaction(conn,transaction_type_id)
 
-    insurancepolicy_id = newid(conn2, 'insurancepolicies')
+    contract_id = newid(conn2, 'contracts')
     # Insert InsurancePolicy record
-    cursor.execute("""INSERT INTO InsurancePolicies (id , payment_date, branch_id, provider_id, policy_type, 
-    coverage_details, start_date, end_date, annual_premium  )
-        VALUES (?, ?, ?,  ?, ?, ?, ?, ?, ?)
-    """,( insurancepolicy_id, doc['payment_date'], doc['branch_id'], doc['provider_id'], doc['policy_type'],  
-    doc['coverage_details'], doc['start_date'], doc['end_date'], doc['annual_premium'] ) )
+    cursor.execute("""INSERT INTO contracts (id, contract_type_id, name, party_id, location_id,
+    branch_id, expense_category_id, revenue_category_id, business_unit_id, contract_date,  start_date, end_date,
+    total_amount, policy_type_id, terms  )
+        VALUES (?,?,?,?,?,  ?,?,?, ?,?,?,  ?,?,?,?)
+    """,( contract_id, CONTRACT_TYPE_INSURANCE_POLICY, doc['name'], doc['provider_id'], doc['location_id'],
+          doc['branch_id'], doc['expense_category_id'],doc['revenue_category_id'], doc['business_unit_id'], doc['contract_date'], 
+          doc['start_date'], doc['end_date'], doc['total_amount'] , doc['policy_type_id'],  doc['coverage_details'] ) )
 
     payment_id = newid(conn2, 'payments')
     # Insert insurance payment record
     cursor.execute("""
         INSERT INTO Payments (id, party_id, amount, description, payment_date, payment_method_id, 
-                   transaction_type_id, number_transaction, policy_id, user_id)
+                   transaction_type_id, number_transaction, contract_id, user_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """,( payment_id, doc['provider_id'], doc['annual_premium'], description, doc['payment_date'], doc['payment_method_id'], 
-         transaction_type_id, number_transaction, insurancepolicy_id, doc['user_id'] ) )
+    """,( payment_id, doc['provider_id'], doc['total_amount'], description, doc['contract_date'], doc['payment_method_id'], 
+         transaction_type_id, number_transaction, contract_id, doc['user_id'] ) )
 
     # posting to the ledger
     transaction_id = newid(conn2, 'transactions')
     cursor.execute( f"""INSERT transactions(id, transaction_date, transaction_type_id, number_transaction, user_id)
-    VALUES(?,?,?,?,?) """, (transaction_id, doc['payment_date'], transaction_type_id, number_transaction, doc['user_id']) ) 
+    VALUES(?,?,?,?,?) """, (transaction_id, doc['contract_date'], transaction_type_id, number_transaction, doc['user_id']) ) 
 
     cursor.execute("""
             INSERT INTO transaction_details( transaction_id, party_id, ledger_account_id,  debit_credit, value,
-            user_id, policy_id,  revenue_expense_category_id, description ) 
-            VALUES (?,?,?,'D', ?,?,?,?,?,?,?)
-        """, (transaction_id, doc['provider_id'], LEDGER_PREPAID_INSURANCE_EXPENSES, doc['annual_premium'], doc['user_id'], 
-             doc['policy_id'], description ) )
+            user_id, contract_id,  revenue_expense_category_id, description ) 
+            VALUES (?,?,?,'D', ?,?,?,?,?)
+        """, (transaction_id, doc['provider_id'], LEDGER_PREPAID_INSURANCE_EXPENSES, doc['total_amount'], 
+              doc['user_id'], contract_id, doc['expense_category_id'], description ) )
 
     cursor.execute("""
             INSERT INTO transaction_details( transaction_id, party_id, ledger_account_id,  debit_credit, value,
-            party_id , user_id , policy_id, revenue_expense_category_id, description ) 
-            VALUES (?,?,?,'C', ?,?,?,?,?,?,?)
-        """, (transaction_id, doc['provider_id'], LEDGER_CASH, doc['annual_premium'], doc['user_id'], 
-               doc['policy_id'], description ) )
+            user_id , contract_id, revenue_expense_category_id, description ) 
+            VALUES (?,?,?,'C', ?,?,?,?,?)
+        """, (transaction_id, doc['provider_id'], LEDGER_CASH, doc['total_amount'], 
+              doc['user_id'], contract_id, doc['expense_category_id'], description ) )
 
     conn.commit()
-
+    return contract_id, payment_id
 
 
 def AT_utility_payment(conn, doc):
@@ -1496,6 +1659,8 @@ def AT_depreciation(conn, asset_id, life_expectancy_years):
     """
     cursor = conn.cursor()
     # Fetch asset cost
+
+    transaction_type_id = DEPRECIATION
     cursor.execute(f"SELECT cost FROM Assets WHERE id = ?", (asset_id,))
     cost = cursor.fetchone()[0]
     
