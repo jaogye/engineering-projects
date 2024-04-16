@@ -100,10 +100,15 @@ The main program is transaction_generator.py, which generates random documents t
 The rest of programs are:
 
 retail_transactions.py  contains all the functions for recording accounting transactions for a retail.
+
 app_codes.py sets the constants for the REP
+
 create_table_strings.py contains the string to create the tables
+
 randomdocs.py contains functions to generate python dictionaries (docs) containing data of accounting transactions
+
 randomrows.py contains functions to generate data of master tables 
+
 utildb.py contains general functions to connect and manipulate the database
 
 Usage:
