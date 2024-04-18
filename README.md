@@ -2,12 +2,9 @@
 
 # AirFlow
 
-Implement an Airflow pipeline to the following.
+This project implements an AirFlow pipeline to process air quality data from OpenAQ and store the results in a database.
 
-## Objective
-Develop a pipeline to process air quality data from OpenAQ and store the results in a database.
-
-## Description
+## Requirements 
 To evaluate the quality of living in some cities, we need to analyze the air quality. To do this, we can rely on a subset of the open dataset provided by OpenAQ. You are given a few datasets in ndjson format, which we expect you to process. You can find them [here](https://drive.google.com/file/d/1bH6BM7hrVI9ufuJ5GVGE7QPEwIJAM1xX/view?usp=sharing).
 
  We need to monitor the 24hr rolling average of the following measures for each city:
@@ -22,8 +19,9 @@ We are also interested in the Air Quality Index (AQI) values of the PM2.5 AQI an
 
 The data pipeline must take  data from Google drive, process it, and eventually store the resulting data in a SQLite database. The database should contain one or more tables with the hourly value of the metrics mentioned above (24-hour rolling average of PM2.5, PM10, O3 Ozone, NO2, and CO; And AQI PM2.5, and AQI PM10) for each city. 
 
-# Solution
-The solution is implemented in pipeline.py and this pipeline has three sequential tasks: extract_files() , get_data(), process_data()
+## Implementation
+
+The pipeline has three sequential tasks: extract_files() , get_data(), process_data()
 
 This implementation follows the following principles:
 
@@ -55,6 +53,10 @@ Obs_air must be sorted since we need to compute the rolling averages.
 ### 3) process_data()
 
 This function reads the table obs_air and accumulates the values and observations for each parameter into the table indicators (from airquality database) for each combination of (country,city, date, and hour). With these accumulated values, we compute the hourly averages of the parameters, and in every insertion, the 24-hour rolling averages are computed based on hourly averages of the parameters.    After the computation of the rolling averages, Air Quality Index of pm25 and pm10 are computed and saved into the Indicators table.
+
+
+## Usage:
+1) 
 
 # Graphon Optimization
 Graphons are limits of sequences of growing graphs and are functions defined on the unit square i.e. $W: [0,1]^2 \to [0,1]$. Graphons were invented to solve problems combinatorial problems on graphs asymptotically. Graphons are the ideal tool to model large networks.
@@ -111,10 +113,11 @@ randomrows.py contains functions to generate data of master tables
 
 utildb.py contains general functions to connect and manipulate the database
 
-Usage:
+## Usage:
 
 1) Create a blank database in Sql Server
 2) Set the user, passsword, database_name and server in util.db 
-3) Run transaction_generator.py
+3) Install python libraries i.e. pip install -r requirements.txt
+4) Run transaction_generator.py
 
 

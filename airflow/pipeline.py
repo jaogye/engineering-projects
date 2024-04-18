@@ -5,7 +5,7 @@ import json
 import sqlite3
 import requests
 from datetime import datetime, timedelta
-import pendulum
+
 import os
 
 """
