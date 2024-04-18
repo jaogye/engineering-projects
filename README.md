@@ -56,7 +56,10 @@ This function reads the table obs_air and accumulates the values and observation
 
 
 ## Usage:
-1) 
+In a Linux environment do 
+1) Install python libraries i.e. pip install -r requirements.txt
+2) Run pipeline.py
+
 
 # Graphon Optimization
 Graphons are limits of sequences of growing graphs and are functions defined on the unit square i.e. $W: [0,1]^2 \to [0,1]$. Graphons were invented to solve problems combinatorial problems on graphs asymptotically. Graphons are the ideal tool to model large networks.
