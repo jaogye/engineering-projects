@@ -84,7 +84,7 @@ def get_service_order(date):
     doc['order_date'] = date
     doc['expected_delivery_date'] = date
     doc['vendor_id'] = getRandomVendor()
-    service_id, _ = getRandomService()
+    service_id = getRandomService()
     doc['service_id'] = service_id 
     doc['total_amount'] = random.randint(200,5000)
     doc['expense_category_id'] = getRandomExpenseCategory()
@@ -155,7 +155,7 @@ def get_sale_transaction(date):
     doc['user_id'] = getRandomUser()
     doc[ 'revenue_expense_category_id'] = getRandomRevenueCategory()
     products = []
-    cursor.execute("""SELECT a.product_id, b.selling_price FROM Inventory a, product_services b
+    cursor.execute("""SELECT a.product_id, b.selling_price FROM Inventory a, products b
                     WHERE a.product_id=b.id and a.quantity > 1 and a.branch_id=?""", (branch_id,))
     available_products = cursor.fetchall()
     if available_products is not None:

@@ -203,9 +203,9 @@ def getRandomSalesPoint():
 
 def getRandomService():
     if  'services' not in df_dic:
-        df_dic['services'] = read_sql_query("SELECT id, selling_price FROM product_services WHERE product_service='S'", conn)
+        df_dic['services'] = read_sql_query("SELECT id FROM services", conn)
     index = random.randint(0, len(df_dic['services'])-1)
-    return int(df_dic['services']['id'][index]), int(df_dic['services']['selling_price'][index])
+    return int(df_dic['services']['id'][index])
 
 
 def getRandomSupplier():
@@ -226,7 +226,7 @@ def getRandomBranch():
 
 def getRandomProduct():
     if  'products' not in df_dic:
-        df_dic['products'] = read_sql_query("SELECT id, selling_price FROM product_services WHERE product_service='P'", conn)
+        df_dic['products'] = read_sql_query("SELECT id, selling_price FROM products", conn)
     index = random.randint(0, len(df_dic['products'])-1)
     return int(df_dic['products']['id'][index]), float(df_dic['products']['selling_price'][index])
 
@@ -455,13 +455,14 @@ def filling_subparties(conn):
 
 
 
-def filling_products(conn):
+def filling_catalogue_items(conn):
     df_products = pd.read_csv('products.csv') 
     cursor = conn.cursor()
-    table_name = 'product_services'    
-    print('loading products')
+    table_name = 'catalogue_items'    
+    print('loading catalogue_items')
     id = 1
-    for _, row in df_products.iterrows():
+
+    for _, row in df_products.iterrows():       
       category_id = getRandomProductCategory()
       name = row.Product     
       name = name.replace("'","''")       
@@ -471,31 +472,38 @@ def filling_products(conn):
       supplier_id = getRandomSupplier()
       unitmeasure_id = getRandomUnitMeasure()
       selling_price = round(cost * random.uniform(1.1, 1.5), 2)  # Selling price 10-50% higher than cost
-      quantity_in_stock = random.randint(0, 1000)
-      reorder_level = random.randint(10, 100)            
-      cursor.execute(f"""INSERT INTO {table_name} (id, code, name, product_service, description, cost, 
-      supplier_id, unitmeasure_id, selling_price, quantity_in_stock, ReorderLevel, category_id) 
-      VALUES(?,?,?,? ,?,?,?,? ,?,?,?,?)
-      """, (id, code, name, 'P', description, cost, supplier_id, unitmeasure_id, selling_price, 
-                  quantity_in_stock, reorder_level, category_id) )
+
+      cursor.execute(f"""INSERT INTO catalogue_items (id, code, name, product_service, description) 
+      VALUES(?,?,?,?,?)
+      """, (id, code, name, 'P', description) )
+
+      cursor.execute(f"""INSERT INTO products (id, code, name, supplier_id, selling_price, unitmeasure_id, cost, quantity_in_stock, reorder_level, category_id) 
+      VALUES(?,?,?,?,?,?,0,0,0,?)
+      """, (id, code, name, supplier_id, selling_price, unitmeasure_id, category_id) )
+
       id = id + 1 
       conn.commit()
+
 
     df_services = pd.read_csv('services.csv')     
     print('loading services')
     n = 1
-    for _, row in df_services.iterrows():       
+    for _, row in df_services.iterrows():
       name = row['name']               
       name = name.replace("'","''")       
       description = row['description']
       code = 'V' + str(n).zfill(5)          
       n =n  + 1
-      supplier_id = getRandomSupplier()
-      selling_price = round(cost * random.uniform(1.1, 1.5), 2)  # Selling price 10-50% higher than cost
+      vendor_id = getRandomVendor()
+      price_hour = round(cost * random.uniform(1.1, 1.5), 2)  # Selling price 10-50% higher than cost
 
-      cursor.execute(f"""INSERT INTO product_services (id, code, name, product_service, description, supplier_id, selling_price, cost) 
-      VALUES(?,?,?,?,?,?,?,0)
-      """, (id, code, name, 'S', description, supplier_id, selling_price) )
+      cursor.execute(f"""INSERT INTO catalogue_items (id, code, name, product_service, description) 
+      VALUES(?,?,?,?,? )
+      """, (id, code, name, 'S', description) )
+
+      cursor.execute(f"""INSERT INTO services (id, code, name, vendor_id, price_hour) 
+      VALUES(?,?,?,?,? )
+      """, (id, code, name, vendor_id, price_hour) )
+
       id = id + 1 
       conn.commit()
-

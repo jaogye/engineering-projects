@@ -3,40 +3,7 @@ from app_codes import *
 str_create_table = {}
 str_load_table = {}
 
-str_load_table['contracts'] = """
-insert into contracts(id, name, contract_type_id, party_id, location_id, branch_id, expense_category_id, business_unit_id, start_date, end_date, total_amount) values
- (1, 'Building Headquarters',      1,              2,          11,          1,          1,1, '2024-01-31', '2024-12-01', 6000),
- (2, 'Blue sky',                    1,     4, 12, 1,1,1, '2024-01-01', '2024-12-31', 6000) ; 
 
-"""
-str_load_table['paymentschedule'] = """
-insert into paymentschedule(id, contract_id, due_date, payment_status_id, amount)
-values 
-(1, 1, '2024-01-01', 1, 1000), 
-(2, 1, '2024-02-01', 1, 1000), 
-(3, 1, '2024-03-01', 1, 1000), 
-(4, 1, '2024-04-01', 1, 1000), 
-(5, 1, '2024-05-01', 1, 1000), 
-(6, 1, '2024-06-01', 1, 1000), 
-(7, 1, '2024-07-01', 1, 1000), 
-(8, 1, '2024-08-01', 1, 1000), 
-(9, 1, '2024-09-01', 1, 1000), 
-(10, 1, '2024-10-01', 1, 1000), 
-(11, 1, '2024-12-01', 1, 1000), 
-(12, 1, '2024-12-01', 1, 1000), 
-(13, 2, '2024-01-01', 1, 1100), 
-(14, 2, '2024-02-01', 1, 1100), 
-(15, 2, '2024-03-01', 1, 1100), 
-(16, 2, '2024-04-01', 1, 1100), 
-(17, 2, '2024-05-01', 1, 1100), 
-(18, 2, '2024-06-01', 1, 1100), 
-(19, 2, '2024-07-01', 1, 1100), 
-(20, 2, '2024-08-01', 1, 1100), 
-(21, 2, '2024-09-01', 1, 1100), 
-(22, 2, '2024-10-01', 1, 1100), 
-(23, 2, '2024-12-01', 1, 1100), 
-(24, 2, '2024-12-01', 1, 1100) ;
-"""
 
 str_create_table['transaction_types'] = f"""
 -- Table for Transaction Type
@@ -305,7 +272,7 @@ CREATE TABLE transaction_details (
     party_id int references parties(id),
     user_id  int references users(id),
     branch_id int references branches(id),
-    product_service_id int references product_services(id),
+    catalogue_item_id int references catalogue_items(id),
     location_id int references locations(id),
     contract_type_id int references contract_types(id),
     contract_id int references contracts(id),
@@ -340,10 +307,10 @@ CREATE TABLE sales (
 """
 
 str_create_table['salesdetails'] = """
-CREATE TABLE SalesDetails (
+CREATE TABLE salesdetails (
     id INT PRIMARY KEY,
     sale_id INT NOT NULL REFERENCES Sales(id) on delete cascade,
-    product_id INT NOT NULL REFERENCES product_services(id),
+    product_id INT NOT NULL REFERENCES catalogue_items(id),
     quantity INT NOT NULL,
     sale_amount DECIMAL(10, 2) NOT NULL,
     cost_amount DECIMAL(10, 2) NOT NULL,
@@ -372,7 +339,7 @@ str_create_table['purchasesdetails'] = """
 CREATE TABLE purchasesdetails (
     id INT PRIMARY KEY,
     purchase_id INT NOT NULL REFERENCES purchases(id) on delete cascade,
-    product_id INT NOT NULL REFERENCES product_services(id),
+    product_id INT NOT NULL REFERENCES catalogue_items(id),
     quantity INT NOT NULL,
     value DECIMAL(10, 2) NOT NULL,
     price DECIMAL(10,2)
@@ -402,7 +369,7 @@ str_create_table['inventory_transactions_detail'] = """
 CREATE TABLE inventory_transactions_detail (
     id int PRIMARY KEY,
     transaction_id int not null REFERENCES inventory_transactions(id) on delete cascade,
-    product_id INTEGER NOT NULL  REFERENCES product_services(id),
+    product_id INTEGER NOT NULL  REFERENCES catalogue_items(id),
     quantity INTEGER NOT NULL,
     value numeric(12,2) NOT NULL
 );
@@ -412,7 +379,7 @@ CREATE TABLE inventory_transactions_detail (
 str_create_table['inventory'] = """
 CREATE TABLE Inventory (
     id INT PRIMARY KEY,
-    product_id INT NOT NULL  REFERENCES Product_services(id),
+    product_id INT NOT NULL  REFERENCES catalogue_items(id),
     branch_id INT NOT NULL  REFERENCES branches(id),
     quantity INT NOT NULL,
     cost_avg numeric(12,2) NOT NULL,
@@ -441,7 +408,7 @@ str_create_table['purchase_order_details'] = """
 CREATE TABLE purchase_order_details (
     id INT PRIMARY KEY,
     purchase_order_id INT NOT NULL  REFERENCES Purchase_Orders(id) on delete cascade,
-    product_id INT NOT NULL  REFERENCES Product_services(id),
+    product_id INT NOT NULL  REFERENCES catalogue_items(id),
     quantity INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     pending INT NOT NULL
@@ -456,7 +423,7 @@ CREATE TABLE service_orders (
     acceptance_date DATE,
     expected_delivery_date DATE,
     worked_hours int , 
-    service_id INT NOT NULL  REFERENCES Product_services(id),    
+    service_id INT NOT NULL  REFERENCES services(id),    
     vendor_id INTEGER NOT NULL  REFERENCES vendors(id),
     branch_id INTEGER NOT NULL  REFERENCES branches(id),
     location_id INT REFERENCES locations(id),
@@ -492,7 +459,7 @@ str_create_table['sale_order_details'] = """
 CREATE TABLE sale_order_details (
     id INT PRIMARY KEY,
     sale_order_id INT NOT NULL  REFERENCES sale_Orders(id) on delete cascade,
-    product_id INT NOT NULL  REFERENCES Product_services(id),
+    product_id INT NOT NULL  REFERENCES catalogue_items(id),
     quantity INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     pending INT NOT NULL
@@ -624,7 +591,7 @@ CREATE TABLE payments (
 """
 
 str_create_table['accountnotes'] = """
-CREATE TABLE AccountNotes (
+CREATE TABLE accountnotes (
     id INT PRIMARY KEY,
     debit_credit char(1) not null, 
     party_id INT REFERENCES Customers(id),
@@ -690,7 +657,7 @@ str_create_table['sale_order_details'] = """
 CREATE TABLE sale_order_details (
     id INT PRIMARY KEY,
     sale_order_id INT NOT NULL  REFERENCES sale_Orders(id),
-    product_id INT NOT NULL  REFERENCES Product_services(id),
+    product_id INT NOT NULL  REFERENCES catalogue_items(id),
     quantity INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     pending INT NOT NULL
@@ -735,7 +702,7 @@ filter char(50)
 
 INSERT INTO dimensions (id, name, main_account, table_name, column_name, filter, ) VALUES
 (1,'Party', 2, 'parties', 'name', ''), 
-(2,'Product', 3, 'product_services', 'name', 'product_services=''P'' '), 
+(2,'Product', 3, 'catalogue_items', 'name', 'catalogue_items=''P'' '), 
 (3,'Branch', 3, 'branches', 'name', ''), 
 (4,'Location', 4, 'locations', 'name', ''), 
 (6,'Party', 6, 'parties', 'name', ''),
@@ -744,7 +711,7 @@ INSERT INTO dimensions (id, name, main_account, table_name, column_name, filter,
 (9, 'Tax Type', 8, 'TaxTypes', 'name', ''),
 (10, 'Customer' , 12, 'Customers', 'name' , '' ),
 (11, 'Branch' , 12, 'Branches', 'name' , '' ), 
-(12, 'Product' , 14, 'product_services', 'name' , 'product_services=''P'' ' ),
+(12, 'Product' , 14, 'catalogue_items', 'name' , 'catalogue_items=''P'' ' ),
 (13, 'Branch' , 14, 'Branches', 'name' , '' ), 
 (13, 'Business units' , 15, 'BusinessUnit', 'name' , '' ) ; 
 """
@@ -2292,21 +2259,41 @@ CREATE TABLE service_providers (
 
 
 
-str_create_table['product_services'] = """
--- Table for product_services
-CREATE TABLE product_services (
+str_create_table['catalogue_items'] = """
+-- Table for catalogue_items
+CREATE TABLE catalogue_items (
     id int PRIMARY KEY,
     code varchar(20) not null, 
     name VARCHAR(100) NOT NULL,
     product_service varchar(1),
-    description TEXT,
+    description TEXT
+);
+"""
+
+str_create_table['products'] = """
+-- Table for products
+CREATE TABLE products (
+    id int PRIMARY KEY references catalogue_items(id),
+    code varchar(20) not null, 
+    name VARCHAR(100) NOT NULL,
     cost DECIMAL(15, 2) NOT NULL,
-    supplier_id INTEGER  REFERENCES suppliers(id),
-    unitmeasure_id INTEGER  REFERENCES unit_measures(id),
-    selling_price DECIMAL(10, 2),
-    quantity_in_stock INT,
-    ReorderLevel INTEGER,
-    category_id INTEGER  REFERENCES product_categories(id)
+    supplier_id INTEGER NOT NULL REFERENCES suppliers(id),
+    unitmeasure_id INTEGER NOT NULL REFERENCES unit_measures(id),
+    selling_price DECIMAL(10, 2) NOT NULL,
+    quantity_in_stock INT NOT NULL,
+    Reorder_Level INTEGER,
+    category_id INTEGER NOT NULL  REFERENCES product_categories(id) 
+);
+"""
+
+str_create_table['services'] = """
+-- Table for services
+CREATE TABLE services (
+    id int PRIMARY KEY references catalogue_items(id),
+    code varchar(20) not null, 
+    name VARCHAR(100) NOT NULL,
+    price_hour DECIMAL(15, 2) NOT NULL,
+    vendor_id INTEGER  REFERENCES vendors(id)
 );
 """
 
@@ -2439,4 +2426,42 @@ CREATE TABLE interesttransactions (
     transaction_type VARCHAR(50) -- 'Income' or 'Expense'
 );
 
+"""
+
+
+
+
+str_load_table['contracts'] = """
+insert into contracts(id, name, contract_type_id, party_id, location_id, branch_id, expense_category_id, business_unit_id, start_date, end_date, total_amount) values
+ (1, 'Building Headquarters',      1,              2,          11,          1,          1,1, '2024-01-31', '2024-12-01', 6000),
+ (2, 'Blue sky',                    1,     4, 12, 1,1,1, '2024-01-01', '2024-12-31', 6000) ; 
+
+"""
+str_load_table['paymentschedule'] = """
+insert into paymentschedule(id, contract_id, due_date, payment_status_id, amount)
+values 
+(1, 1, '2024-01-01', 1, 1000), 
+(2, 1, '2024-02-01', 1, 1000), 
+(3, 1, '2024-03-01', 1, 1000), 
+(4, 1, '2024-04-01', 1, 1000), 
+(5, 1, '2024-05-01', 1, 1000), 
+(6, 1, '2024-06-01', 1, 1000), 
+(7, 1, '2024-07-01', 1, 1000), 
+(8, 1, '2024-08-01', 1, 1000), 
+(9, 1, '2024-09-01', 1, 1000), 
+(10, 1, '2024-10-01', 1, 1000), 
+(11, 1, '2024-12-01', 1, 1000), 
+(12, 1, '2024-12-01', 1, 1000), 
+(13, 2, '2024-01-01', 1, 1100), 
+(14, 2, '2024-02-01', 1, 1100), 
+(15, 2, '2024-03-01', 1, 1100), 
+(16, 2, '2024-04-01', 1, 1100), 
+(17, 2, '2024-05-01', 1, 1100), 
+(18, 2, '2024-06-01', 1, 1100), 
+(19, 2, '2024-07-01', 1, 1100), 
+(20, 2, '2024-08-01', 1, 1100), 
+(21, 2, '2024-09-01', 1, 1100), 
+(22, 2, '2024-10-01', 1, 1100), 
+(23, 2, '2024-12-01', 1, 1100), 
+(24, 2, '2024-12-01', 1, 1100) ;
 """

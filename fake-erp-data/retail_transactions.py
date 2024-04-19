@@ -201,7 +201,7 @@ def AT_inventory_entry(conn, doc):
 
     cursor.execute( """
     INSERT transaction_details( transaction_id, ledger_account_id, payment_term_id,  debit_credit, 
-    value, quantity, party_id , user_id , branch_id, product_service_id, location_id ) 
+    value, quantity, party_id , user_id , branch_id, catalogue_item_id, location_id ) 
     SELECT ?, ?, ?, 'D', b.value, b.quantity, a.supplier_id, a.user_id, a.branch_id, 
     b.product_id, c.location_id
     FROM inventory_transactions a, inventory_transactions_detail b, branches c 
@@ -373,7 +373,7 @@ def AT_service_acceptance(conn, doc):
     cursor.execute("""
             INSERT INTO transaction_details( transaction_id, ledger_account_id,  debit_credit, value,
             party_id , user_id , branch_id, location_id, 
-            product_service_id, description )
+            catalogue_item_id, description )
             VALUES (?,?,'C', ?,?,?,?,?,?,?)
         """, (transaction_id, LEDGER_ACCOUNTS_PAYABLE, total_amount, vendor_id, doc['user_id'], 
               branch_id, location_id, service_id, description ) )
@@ -381,7 +381,7 @@ def AT_service_acceptance(conn, doc):
     cursor.execute("""
             INSERT INTO transaction_details( transaction_id, ledger_account_id,  debit_credit, value,
             party_id , user_id , branch_id, location_id, revenue_expense_category_id, businessunit_id, 
-            product_service_id, description )
+            catalogue_item_id, description )
             VALUES (?,?,'D', ?,?,?,?,?,?,?,?,?)
         """, (transaction_id, LEDGER_OPERATING_EXPENSES, total_amount, vendor_id, doc['user_id'], 
               branch_id, location_id, expense_category_id, business_unit_id, service_id, description ) )
@@ -755,14 +755,14 @@ def AT_sale_transaction(conn, doc):
         # Posting goods cost
         cursor.execute("""
             INSERT INTO transaction_details( transaction_id, ledger_account_id, debit_credit, value, quantity,
-            product_service_id, party_id, user_id , branch_id, location_id, payment_term_id )
+            catalogue_item_id, party_id, user_id , branch_id, location_id, payment_term_id )
             VALUES(?, ?, 'C',?,?,  ?,?,?,  ?,?,?  )                   
         """, (transaction_id, LEDGER_INVENTORY, value , quantity, product_id,  doc['customer_id'], doc['user_id'], 
               doc['branch_id'], location_id,  doc['payment_term_id'] ) )
 
         cursor.execute("""
             INSERT INTO transaction_details( transaction_id, ledger_account_id,  debit_credit, value, quantity,
-            product_service_id, party_id, user_id , branch_id, location_id, payment_term_id )
+            catalogue_item_id, party_id, user_id , branch_id, location_id, payment_term_id )
             VALUES(?, ?, 'C',?,?,  ?,?,?,  ?,?,?  )                        
         """, (transaction_id, LEDGER_COST_OF_GOODS_SOLD, value , quantity, product_id, doc['customer_id'], doc['user_id'], 
               doc['branch_id'], location_id, doc['payment_term_id'] ) )
@@ -852,7 +852,7 @@ def AT_sale_transaction(conn, doc):
 
     cursor.execute("""
             INSERT INTO transaction_details( transaction_id, ledger_account_id, debit_credit, value, quantity,
-            product_service_id, party_id, user_id , branch_id, location_id )
+            catalogue_item_id, party_id, user_id , branch_id, location_id )
             SELECT ?, ?, 'C', b.sale_amount, b.quantity, b.product_id, ?, ?, ?, ?
             FROM SalesDetails b WHERE b.sale_id = ?
         """, (transaction_id, LEDGER_SALES_REVENUE, doc['customer_id'], doc['user_id'], 
@@ -988,7 +988,7 @@ def AT_return_and_refund(conn, doc):
             UPDATE Inventory SET quantity = quantity + ?, value = value+? WHERE product_id =? and branch_id = ?
             """, (doc['return_quantity'], return_value, doc['product_id'] , branch_id))
     else:
-        cursor.execute("SELECT cost FROM product_services WHERE id=?", (doc['product_id'] ,))
+        cursor.execute("SELECT cost FROM products WHERE id=?", (doc['product_id'] ,))
         cost_avg = cursor.fetchone()[0]
         return_value = doc['return_quantity']*cost_avg
         # Insert new inventory record
@@ -1022,7 +1022,7 @@ def AT_return_and_refund(conn, doc):
 
         cursor.execute("""
             INSERT INTO transaction_details( transaction_id, ledger_account_id,  debit_credit, value,
-            party_id , user_id , branch_id, location_id, product_service_id, description ) 
+            party_id , user_id , branch_id, location_id, catalogue_item_id, description ) 
             VALUES (?,?,'C', ?,?,?,?,?,?, ?)
         """, (transaction_id, LEDGER_CASH, refund_amount, customer_id, doc['user_id'], 
               branch_id, location_id, doc['product_id'], description ) )
@@ -1040,7 +1040,7 @@ def AT_return_and_refund(conn, doc):
        
         cursor.execute("""
             INSERT INTO transaction_details( transaction_id, debit_credit, ledger_account_id, value,
-            party_id , user_id , branch_id, location_id, product_service_id, description ) 
+            party_id , user_id , branch_id, location_id, catalogue_item_id, description ) 
             VALUES (?,'C',?,? ,?,?,?,?, ?,?)
         """, (transaction_id, LEDGER_ACCOUNTS_RECEIVABLE, refund_amount, customer_id, doc['user_id'], 
               branch_id, location_id, doc['product_id'], reason ) )
@@ -1049,7 +1049,7 @@ def AT_return_and_refund(conn, doc):
 
     cursor.execute( """
     INSERT transaction_details( transaction_id, debit_credit, ledger_account_id, value, quantity,
-    party_id , user_id , branch_id, product_service_id, location_id ) 
+    party_id , user_id , branch_id, catalogue_item_id, location_id ) 
     VALUES (?,'D',?,?,?   ,?,?,?,?,?)                """, 
     (transaction_id, LEDGER_INVENTORY, refund_amount,  doc['return_quantity'], customer_id, doc['user_id'],
      branch_id, doc['product_id'], location_id) ) 

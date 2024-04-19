@@ -199,3 +199,68 @@ def create_table(conn, table_name):
     cursor.execute(ss)
     conn.commit()
 
+
+
+
+def generate_sql_statement(operation, table, fields=None, condition=None):
+    """
+    Function to generate SQL statements based on operation, table, fields, and conditions.
+    
+    Args:
+        operation (str): The SQL operation (SELECT, INSERT, UPDATE, DELETE).
+        table (str): The name of the table.
+        fields (list or str, optional): List of fields for SELECT operation or
+            fields and values for INSERT and UPDATE operations.
+        condition (str, optional): The WHERE condition for SELECT, UPDATE, DELETE operations.
+
+    Returns:
+        str: The generated SQL statement.
+    """
+    if operation.upper() == "SELECT":
+        if fields:
+            fields = ", ".join(fields) if isinstance(fields, list) else fields
+            sql_statement = f"SELECT {fields} FROM {table}"
+            if condition:
+                sql_statement += f" WHERE {condition}"
+            return sql_statement
+        else:
+            return f"SELECT * FROM {table}{' WHERE ' + condition if condition else ''}"
+    
+    elif operation.upper() == "INSERT":
+        if fields:
+            if isinstance(fields, dict):
+                columns = ", ".join(fields.keys())
+                values = ", ".join([f"'{value}'" if isinstance(value, str) else str(value) for value in fields.values()])
+                return f"INSERT INTO {table} ({columns}) VALUES ({values})"
+            else:
+                raise ValueError("Fields must be a dictionary with column names and values.")
+        else:
+            raise ValueError("Fields argument is required for INSERT operation.")
+    
+    elif operation.upper() == "UPDATE":
+        if fields:
+            if isinstance(fields, dict):
+                set_values = ", ".join([f"{key} = '{value}'" if isinstance(value, str) else f"{key} = {value}" for key, value in fields.items()])
+                sql_statement = f"UPDATE {table} SET {set_values}"
+                if condition:
+                    sql_statement += f" WHERE {condition}"
+                return sql_statement
+            else:
+                raise ValueError("Fields must be a dictionary with column names and values.")
+        else:
+            raise ValueError("Fields argument is required for UPDATE operation.")
+    
+    elif operation.upper() == "DELETE":
+        sql_statement = f"DELETE FROM {table}"
+        if condition:
+            sql_statement += f" WHERE {condition}"
+        return sql_statement
+    
+    else:
+        raise ValueError("Invalid operation. Supported operations are SELECT, INSERT, UPDATE, DELETE.")
+
+# Example usage:
+#print(generate_sql_statement("SELECT", "users", ["id", "username", "email"], "id = 1"))
+#print(generate_sql_statement("INSERT", "users", {"username": "john", "email": "john@example.com"}))
+#print(generate_sql_statement("UPDATE", "users", {"username": "jane", "email": "jane@example.com"}, "id = 2"))
+#print(generate_sql_statement("DELETE", "users", condition="id = 3"))

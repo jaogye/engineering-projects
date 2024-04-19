@@ -40,9 +40,9 @@ all_tables = ['entry_types', 'salesdetails', 'sale_order_details', 'service_prov
 'accountsreceivable', 'purchasesdetails', 'taxliabilities', 'taxauthorities', 'taxtypes', 'inventory_transactions', 
 'accountspayable', 'sales', 'salespersons', 'sale_orders', 'customers',  'promotions', 
 'sales_channels', 'sales_points', 'service_orders', 'revenue_expense_categories', 'business_units', 
-'vendors', 'payroll', 'employees',  'payment_statuses', 'purchases', 'payment_methods', 
-'purchase_order_details', 'product_services', 'product_categories', 'unit_measures', 'purchase_orders', 
-'suppliers', 'users', 'parties', 'transaction_types', 'payment_terms', 'sp_order_statuses', 'branches', 
+'payroll', 'employees',  'payment_statuses', 'purchases', 'payment_methods', 
+'purchase_order_details', 'products', 'services', 'catalogue_items', 'product_categories', 'unit_measures', 'purchase_orders', 
+'vendors','suppliers', 'users', 'parties', 'transaction_types', 'payment_terms', 'sp_order_statuses', 'branches', 
 'locations', 'countries', 'departments', 'customer_segments', 'utility_types']
 
 
@@ -67,8 +67,8 @@ def loadTables():
     filling_parties(conn)
     print('loading subparties ' ) 
     filling_subparties(conn)
-    print('loading product_services ' ) 
-    filling_products(conn)
+    print('loading catalogue_items ' ) 
+    filling_catalogue_items(conn)
     for table_name in str_load_table:
         ss = str_load_table[table_name]
         print('loading table ', table_name) 
