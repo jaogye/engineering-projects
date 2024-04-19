@@ -106,7 +106,7 @@ In the folder, there are 2 python files:
 2) Run test_savers.py
 
 
-# Fake_erp_data
+# Fake-erp-data
 
 This is a project that simulated data of an ERP database for a retail business. The ERP base is a SQL Server database.
 
