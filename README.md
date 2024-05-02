@@ -136,7 +136,7 @@ utildb.py contains general functions to connect and manipulate the database
 
 # erp-datamodels-factorization
 
-This is a in-progress project whose purpose is factoring data models of ERPs contained the repository of Common Data Models from https://github.com/microsoft/CDM into data patterns given from David Hay's books "Data Model Patterns Conventions of Thought" and "DATA MODEL PATTERNS A Metadata Map". The goal is to use these patterns to plug into RAG technology to assist the generation and modification of ERPs using AI. 
+This is a in-progress project whose purpose is to factor data models of ERPs contained the repository of Common Data Models from https://github.com/microsoft/CDM into data patterns given from David Hay's books "Data Model Patterns Conventions of Thought" and "DATA MODEL PATTERNS A Metadata Map". The goal is to use these patterns to build a deformable universal data model in which the business processes of ERPs will induce deformation operators of the universal data model into the final data model used by the ERP.
 
 So far, I have created two files :
 
