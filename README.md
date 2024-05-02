@@ -134,3 +134,15 @@ utildb.py contains general functions to connect and manipulate the database
 4) Run transaction_generator.py
 
 
+# erp-datamodels-factorization
+
+This is a in-progress project whose purpose is factoring data models of ERPs contained the repository of Common Data Models from https://github.com/microsoft/CDM into data patterns given from David Hay's books "Data Model Patterns Conventions of Thought" and "DATA MODEL PATTERNS A Metadata Map". The goal is to use these patterns to plug into RAG technology to assist the generation and modification of ERPs using AI. 
+
+So far, I have created two files :
+
+read_cmd.py: a python program that reads a CDM manifest file and then translates the definitions found in the repository into a json file containts these definitions more easily to manipulate.
+
+DavidHay'sDataModelPatterns.txt : this file contains all data pattern models found in "Data Model Patterns Conventions of Thought" . The patterns are written in pseudo dml language similar to sql-dml language which includes subtyping and object-role-model relations 
+
+
+
